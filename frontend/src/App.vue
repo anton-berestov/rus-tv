@@ -1,88 +1,129 @@
 <template>
 	<div id="app">
-		<!-- Показываем загрузку, если инициализация еще не завершена -->
 		<div v-if="!authStore.isInitialized" class="loading-overlay">
 			<div class="loading-spinner"></div>
 		</div>
 
-		<!-- Показываем навигационный бар только если пользователь авторизован и инициализация завершена -->
 		<nav v-else-if="authStore.isAuthenticated" class="main-nav">
 			<router-link to="/channels">Каналы</router-link>
 			<router-link to="/subscription">Подписка</router-link>
 			<button @click="logout" class="logout-button">Выйти</button>
 		</nav>
-		<router-view></router-view>
+		<div class="router-view-container">
+			<router-view></router-view>
+		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
 import { useAuthStore } from './stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { computed } from 'vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const logout = async () => {
-	authStore.logout()
+	await authStore.logout()
 	router.push('/login')
 }
 </script>
 
 <style>
+html,
 body {
 	margin: 0;
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-		'Helvetica Neue', Arial, sans-serif;
+	padding: 0;
+	width: 100%;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+		Roboto, 'Helvetica Neue', Arial, sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	background-color: #f5f5f5;
+	background: linear-gradient(135deg, #f5f7fa 0%, #e4eafc 100%);
+	color: #333;
+	line-height: 1.6;
+	overflow-x: hidden;
+	width: 100%;
+	box-sizing: border-box;
 }
 
 #app {
 	min-height: 100vh;
+	margin: 0 auto;
+	box-sizing: border-box;
+	overflow-x: hidden;
 }
 
 .main-nav {
-	background: #fff;
+	background: linear-gradient(to right, #2c3e50, #4c6ef5);
 	padding: 1rem;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	display: flex;
 	justify-content: center;
-	gap: 2rem;
+	gap: 2.5rem;
+	border-radius: 0 0 10px 10px;
+	position: relative;
+	z-index: 10;
 }
 
 .main-nav a {
-	color: #333;
+	color: rgba(255, 255, 255, 0.85);
 	text-decoration: none;
-	font-weight: 500;
-	padding: 0.5rem 1rem;
-	border-radius: 4px;
-	transition: background-color 0.3s;
+	font-weight: 600;
+	padding: 0.6rem 1.2rem;
+	border-radius: 6px;
+	transition: all 0.3s ease;
+	letter-spacing: 0.5px;
+	position: relative;
 }
 
 .main-nav a:hover {
-	background-color: #f0f0f0;
+	color: #ffffff;
+	background-color: rgba(255, 255, 255, 0.1);
+	transform: translateY(-2px);
 }
 
 .main-nav a.router-link-active {
-	color: #4caf50;
-	background-color: #e8f5e9;
+	color: #ffffff;
+	background-color: rgba(255, 255, 255, 0.15);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+	border-bottom: 2px solid #4cd964;
 }
 
 .logout-button {
-	background: none;
-	border: 1px solid #dc3545;
-	color: #dc3545;
-	padding: 0.5rem 1rem;
-	border-radius: 4px;
+	background: rgba(220, 53, 69, 0.1);
+	border: 2px solid rgba(220, 53, 69, 0.6);
+	color: #ffffff;
+	padding: 0.6rem 1.2rem;
+	border-radius: 6px;
 	cursor: pointer;
-	font-weight: 500;
-	transition: all 0.3s;
+	font-weight: 600;
+	transition: all 0.3s ease;
+	letter-spacing: 0.5px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .logout-button:hover {
-	background: #dc3545;
+	background: rgba(220, 53, 69, 0.9);
 	color: white;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.register-button {
+	color: #fff;
+	background-color: #4caf50;
+	border-radius: 4px;
+}
+
+.register-button:hover {
+	background-color: #3d9140;
 }
 
 .loading-overlay {
@@ -91,20 +132,36 @@ body {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background-color: rgba(255, 255, 255, 0.8);
+	background-color: rgba(44, 62, 80, 0.95);
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	z-index: 9999;
+	backdrop-filter: blur(5px);
 }
 
 .loading-spinner {
-	width: 40px;
-	height: 40px;
+	width: 50px;
+	height: 50px;
 	border-radius: 50%;
-	border: 4px solid #f3f3f3;
-	border-top: 4px solid #4caf50;
-	animation: spin 1s linear infinite;
+	border: 3px solid rgba(255, 255, 255, 0.1);
+	border-top: 3px solid #4c6ef5;
+	border-right: 3px solid transparent;
+	box-shadow: 0 0 25px rgba(76, 110, 245, 0.5);
+	animation: spin 0.8s ease-in-out infinite;
+	position: relative;
+}
+
+.loading-spinner::before {
+	content: '';
+	position: absolute;
+	top: -10px;
+	left: -10px;
+	right: -10px;
+	bottom: -10px;
+	border-radius: 50%;
+	border: 3px solid rgba(76, 110, 245, 0.1);
+	animation: pulse 1.5s linear infinite;
 }
 
 @keyframes spin {
@@ -114,5 +171,39 @@ body {
 	100% {
 		transform: rotate(360deg);
 	}
+}
+
+@keyframes pulse {
+	0% {
+		transform: scale(0.85);
+		opacity: 0.7;
+	}
+	50% {
+		transform: scale(1);
+		opacity: 0.3;
+	}
+	100% {
+		transform: scale(0.85);
+		opacity: 0.7;
+	}
+}
+
+.full-width-view {
+	width: 100vw;
+	max-width: 100vw;
+	margin-left: calc(-50vw + 50%);
+	padding: 0;
+	overflow-x: hidden;
+	position: relative;
+	left: 0;
+	right: 0;
+}
+
+.full-width-view > * {
+	max-width: 100vw !important;
+	width: 100vw !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	overflow-x: hidden !important;
 }
 </style>

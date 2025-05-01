@@ -61,7 +61,7 @@ const authStore = useAuthStore()
 const handleSubmit = async () => {
 	try {
 		await authStore.login(username.value, password.value)
-		router.push('/')
+		router.push('/channels')
 	} catch (err: any) {
 		error.value = err.response?.data?.error || err.message || 'Ошибка при входе'
 	}

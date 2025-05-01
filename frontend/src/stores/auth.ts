@@ -137,12 +137,20 @@ export const useAuthStore = defineStore('auth', {
 			}
 		},
 
-		logout() {
-			this.user = null
-			this.token = null
-			this.isAuthenticated = false
-			localStorage.removeItem('token')
-			delete axios.defaults.headers.common['Authorization']
+		async logout() {
+			try {
+				if (this.token) {
+					await axios.post('/api/auth/logout')
+				}
+			} catch (error) {
+				console.error('Ошибка при выходе из системы:', error)
+			} finally {
+				this.user = null
+				this.token = null
+				this.isAuthenticated = false
+				localStorage.removeItem('token')
+				delete axios.defaults.headers.common['Authorization']
+			}
 		},
 	},
 })

@@ -6,6 +6,12 @@ const router = createRouter({
 	routes: [
 		{
 			path: '/',
+			name: 'welcome',
+			component: () => import('@/views/Welcome.vue'),
+			meta: { requiresAuth: false },
+		},
+		{
+			path: '/home',
 			name: 'home',
 			redirect: to => {
 				const authStore = useAuthStore()
