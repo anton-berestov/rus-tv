@@ -1,11 +1,9 @@
 import { Request, Response } from 'express'
-import jwt, { Secret, SignOptions } from 'jsonwebtoken'
-import { Types } from 'mongoose'
+import jwt from 'jsonwebtoken'
 import { v4 as uuidv4 } from 'uuid'
 import config from '../config/env'
 import { IUser, User } from '../models/User'
 import { emailService } from '../services/emailService'
-import { JwtResponse } from '../types/jwt'
 import { generatePassword } from '../utils/passwordGenerator'
 
 interface CustomJwtPayload {
@@ -77,6 +75,7 @@ export const register = async (req: Request, res: Response) => {
 				active: true,
 				deviceLimit: config.subscription.trial.deviceLimit,
 				expireDate: trialExpireDate,
+				autoRenewal: false,
 			},
 		})
 
@@ -136,7 +135,7 @@ export const login = async (req: Request, res: Response) => {
 		}
 
 		// Поиск пользователя по email или username
-		let user;
+		let user
 		if (email) {
 			user = await User.findOne({ email }).exec()
 		} else if (username) {
@@ -177,17 +176,13 @@ export const login = async (req: Request, res: Response) => {
 				config.server.nodeEnv === 'development' ? error.message : undefined,
 		})
 	}
-	}
+}
 
-	// Генерация JWT токена
-	const generateToken = (userId: string, deviceId?: string): string => {
-	return jwt.sign(
-		{ userId, deviceId },
-		config.security.jwt.secret as Secret,
-		{
-			expiresIn: config.security.jwt.expiresIn,
-		},
-	)
+// Генерация JWT токена
+const generateToken = (userId: string, deviceId?: string): string => {
+	return jwt.sign({ userId, deviceId }, config.security.jwt.secret, {
+		expiresIn: config.security.jwt.expiresIn as any,
+	})
 }
 
 export const subscribe = async (req: Request, res: Response) => {
@@ -234,6 +229,7 @@ export const subscribe = async (req: Request, res: Response) => {
 			active: true,
 			deviceLimit,
 			expireDate,
+			autoRenewal: false,
 		}
 
 		await user.save()
