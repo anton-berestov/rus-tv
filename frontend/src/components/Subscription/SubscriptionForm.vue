@@ -17,7 +17,7 @@
 					required
 					class="form-control"
 				/>
-				<p class="price-info">Стоимость: ${{ calculatePrice }} в месяц</p>
+				<p class="price-info">Стоимость: {{ calculatePrice }} ₽ в месяц</p>
 			</div>
 			<button type="submit" class="btn btn-primary">
 				{{
@@ -32,13 +32,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import axios from 'axios'
 
 const authStore = useAuthStore()
 const deviceLimit = ref(1)
 const error = ref('')
 
 const calculatePrice = computed(() => {
-	return deviceLimit.value * 3
+	return deviceLimit.value * 299
 })
 
 const formatDate = (date: string) => {
@@ -47,9 +48,59 @@ const formatDate = (date: string) => {
 
 const handleSubmit = async () => {
 	try {
-		await authStore.subscribe(deviceLimit.value)
+		// Показываем сообщение о начале процесса оплаты
+		const confirmMessage = `Вы собираетесь оформить подписку на ${deviceLimit.value} устройств стоимостью ${calculatePrice.value} ₽. Продолжить?`
+
+		if (!confirm(confirmMessage)) {
+			return
+		}
+
+		// Находим базовый тарифный план
+		console.log('Запрашиваем доступные тарифные планы...')
+		const response = await axios.get('/api/subscriptions/plans')
+
+		if (
+			!response.data ||
+			!response.data.plans ||
+			response.data.plans.length === 0
+		) {
+			throw new Error('Не удалось получить информацию о тарифных планах')
+		}
+
+		console.log('Получено планов:', response.data.plans.length)
+
+		// Берем первый найденный план (базовый)
+		const basicPlan =
+			response.data.plans.find(plan => plan.name === 'Базовый') ||
+			response.data.plans[0]
+
+		console.log('Выбран план:', basicPlan.name, basicPlan._id)
+
+		// Создаем платеж через ЮKassa с сохранением метода оплаты
+		const paymentData = await authStore.subscribeByPlanWithYookassa(
+			basicPlan._id,
+			undefined,
+			true
+		)
+
+		console.log('Получен ответ от платежной системы:', paymentData)
+
+		// Если есть URL для подтверждения, перенаправляем пользователя
+		if (paymentData && paymentData.confirmationUrl) {
+			// Переходим на страницу оплаты
+			window.location.href = paymentData.confirmationUrl
+		} else {
+			throw new Error('Не получен URL для перехода к оплате')
+		}
 	} catch (err: any) {
-		error.value = err.message || 'Ошибка при обновлении подписки'
+		console.error('Ошибка при оформлении подписки:', err)
+
+		// Извлекаем сообщение об ошибке из разных источников
+		error.value =
+			err.response?.data?.error ||
+			err.response?.data?.details ||
+			err.message ||
+			'Ошибка при обновлении подписки. Пожалуйста, попробуйте позже.'
 	}
 }
 

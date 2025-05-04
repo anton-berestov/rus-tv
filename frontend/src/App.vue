@@ -10,15 +10,28 @@
 			<button @click="logout" class="logout-button">Выйти</button>
 		</nav>
 		<div class="router-view-container">
-			<router-view></router-view>
+			<router-view v-slot="{ Component }">
+				<keep-alive include="SubscriptionPage">
+					<component :is="Component" />
+				</keep-alive>
+			</router-view>
 		</div>
+		<footer class="site-footer">
+			<div class="footer-content">
+				<strong>Информация для покупателей</strong>
+				<div class="footer-offer">
+					Берестов Антон Леонидович<br />
+					ИНН: 182101629473<br />
+					<a href="/offer" class="footer-link">Публичная оферта</a>
+				</div>
+			</div>
+		</footer>
 	</div>
 </template>
 
 <script setup lang="ts">
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { useRouter, useRoute } from 'vue-router'
-import { computed } from 'vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -205,5 +218,45 @@ body {
 	margin: 0 !important;
 	padding: 0 !important;
 	overflow-x: hidden !important;
+}
+
+.site-footer {
+	width: 100%;
+	background: linear-gradient(90deg, #e4eafc 0%, #f5f7fa 100%);
+	color: #333;
+	padding: 2rem 0 1.2rem 0;
+	text-align: center;
+	font-size: 1rem;
+	border-top: 1px solid #dbeafe;
+	margin-top: 2rem;
+	box-shadow: 0 -2px 8px rgba(76, 110, 245, 0.05);
+}
+.footer-content {
+	max-width: 700px;
+	margin: 0 auto;
+	padding: 0 1rem;
+}
+.footer-content ul {
+	list-style: disc inside;
+	margin: 0.5rem 0 1rem 0;
+	padding: 0;
+	text-align: left;
+}
+.footer-offer {
+	margin-top: 0.7rem;
+	font-size: 0.98rem;
+	color: #444;
+}
+.footer-link {
+	display: inline-block;
+	margin-top: 0.5rem;
+	color: #4c6ef5;
+	text-decoration: underline;
+	font-weight: 500;
+	transition: color 0.2s;
+}
+.footer-link:hover {
+	color: #2c3e50;
+	text-decoration: none;
 }
 </style>

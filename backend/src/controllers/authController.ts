@@ -125,17 +125,24 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
 	try {
-		const { username, password } = req.body
+		const { email, username, password } = req.body
 		const deviceId = req.body.deviceId || uuidv4()
 
 		// Проверка наличия обязательных полей
-		if (!username || !password) {
+		if ((!email && !username) || !password) {
 			return res.status(400).json({
-				error: 'Имя пользователя и пароль обязательны для заполнения',
+				error: 'Email/имя пользователя и пароль обязательны для заполнения',
 			})
 		}
 
-		const user = await User.findOne({ username }).exec()
+		// Поиск пользователя по email или username
+		let user;
+		if (email) {
+			user = await User.findOne({ email }).exec()
+		} else if (username) {
+			user = await User.findOne({ username }).exec()
+		}
+
 		if (!user) {
 			return res.status(401).json({
 				error: 'Неверные учетные данные',
@@ -149,24 +156,12 @@ export const login = async (req: Request, res: Response) => {
 			})
 		}
 
-		const payload: CustomJwtPayload = {
-			userId: (user._id as Types.ObjectId).toString(),
-			deviceId,
-		}
-
-		const signOptions: SignOptions = {
-			expiresIn: config.jwt.expiresIn,
-		}
-
-		const token = jwt.sign(payload, config.jwt.secret as Secret, signOptions)
-
-		const response: JwtResponse = {
-			token,
-			deviceId,
-		}
+		// Создаем JWT токен
+		const token = generateToken(user._id.toString(), deviceId)
 
 		res.json({
-			...response,
+			token,
+			deviceId,
 			user: {
 				id: user._id,
 				email: user.email,
@@ -182,6 +177,17 @@ export const login = async (req: Request, res: Response) => {
 				config.server.nodeEnv === 'development' ? error.message : undefined,
 		})
 	}
+	}
+
+	// Генерация JWT токена
+	const generateToken = (userId: string, deviceId?: string): string => {
+	return jwt.sign(
+		{ userId, deviceId },
+		config.security.jwt.secret as Secret,
+		{
+			expiresIn: config.security.jwt.expiresIn,
+		},
+	)
 }
 
 export const subscribe = async (req: Request, res: Response) => {

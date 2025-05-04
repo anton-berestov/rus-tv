@@ -1,5 +1,17 @@
 import { useAuthStore } from '@/stores/auth'
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+	createRouter,
+	createWebHistory,
+	NavigationGuardNext,
+	RouteLocationNormalized,
+} from 'vue-router'
+
+// Описание типа для pendingNavigations
+interface PendingNavigation {
+	to: RouteLocationNormalized
+	from: RouteLocationNormalized
+	next: NavigationGuardNext
+}
 
 const router = createRouter({
 	history: createWebHistory(),
@@ -38,13 +50,29 @@ const router = createRouter({
 			meta: { requiresAuth: true },
 		},
 		{
+			path: '/subscription/:paymentId',
+			name: 'subscription-payment',
+			component: () => import('@/components/Subscription/SubscriptionPage.vue'),
+			meta: { requiresAuth: true },
+			props: true,
+		},
+		{
 			path: '/channels',
 			name: 'channels',
 			component: () => import('@/components/Channel/ChannelList.vue'),
 			meta: { requiresAuth: true, requiresSubscription: true },
 		},
+		{
+			path: '/offer',
+			name: 'offer',
+			component: () => import('@/views/Offer.vue'),
+			meta: { requiresAuth: false },
+		},
 	],
 })
+
+// Хранилище маршрутов, ожидающих инициализацию
+const pendingNavigations: PendingNavigation[] = []
 
 // Навигационный охранник работает после инициализации авторизации
 router.beforeEach((to, from, next) => {
@@ -52,7 +80,8 @@ router.beforeEach((to, from, next) => {
 
 	// Если инициализация не завершена, откладываем навигацию
 	if (!authStore.isInitialized && to.meta.requiresAuth) {
-		// Просто возвращаемся без вызова next(), инициализация в main.ts вызовет next() позже
+		// Сохраняем маршрут и функцию next для выполнения после инициализации
+		pendingNavigations.push({ to, from, next })
 		return
 	}
 
@@ -71,4 +100,6 @@ router.beforeEach((to, from, next) => {
 	next()
 })
 
+// Экспортируем маршрутизатор и массив отложенных навигаций для использования в main.ts
+export { pendingNavigations, router }
 export default router
