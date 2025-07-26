@@ -44,12 +44,13 @@
 			>
 				<div class="channel-logo">
 					<img
-						:src="getProxyLogoUrl(channel.logoUrl)"
+						v-if="getChannelImageUrl(channel)"
+						:src="getChannelImageUrl(channel)"
 						:alt="channel.name"
 						loading="lazy"
 						@error="e => handleImageError(e, channel)"
 					/>
-					<div v-if="!channel.logoUrl" class="channel-placeholder">
+					<div v-else class="channel-placeholder">
 						{{ getChannelInitials(channel.name) }}
 					</div>
 				</div>
@@ -124,6 +125,9 @@ const filteredChannels = computed(() => {
 // Множество для отслеживания каналов с ошибками загрузки логотипов
 const failedLogos = ref(new Set<string>())
 
+// Кэш для blob URLs изображений
+const imageCache = ref(new Map<string, string>())
+
 // Получение инициалов канала для плейсхолдера
 const getChannelInitials = (name: string) => {
 	if (!name) return '?'
@@ -138,33 +142,83 @@ const getChannelInitials = (name: string) => {
 	return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
 }
 
-// Получение URL логотипа через прокси
-const getProxyLogoUrl = (logoUrl: string) => {
-	if (!logoUrl) return ''
+// Загрузка изображения через fetch API для обхода CORS
+const loadImageAsBlob = async (logoUrl: string): Promise<string | null> => {
+	if (!logoUrl) return null
 
-	// Проверка, является ли URL корректным
+	// Проверяем кэш
+	if (imageCache.value.has(logoUrl)) {
+		return imageCache.value.get(logoUrl)!
+	}
+
 	try {
-		// Если URL уже абсолютный и начинается с http, используем его через прокси
-		if (logoUrl.startsWith('http')) {
-			const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
-			return `${baseUrl}/api/playlist/logo?url=${encodeURIComponent(logoUrl)}`
+		// Формируем URL для прокси
+		const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
+		const proxyUrl = logoUrl.startsWith('http')
+			? `${baseUrl}/api/playlist/logo?url=${encodeURIComponent(logoUrl)}`
+			: logoUrl
+
+		// Загружаем изображение через fetch
+		const response = await fetch(proxyUrl)
+
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}`)
 		}
 
-		// Если URL относительный, добавляем базовый URL
-		if (logoUrl.startsWith('/')) {
-			const originUrl = window.location.origin
-			const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
-			return `${baseUrl}/api/playlist/logo?url=${encodeURIComponent(
-				originUrl + logoUrl
-			)}`
-		}
+		const blob = await response.blob()
+		const blobUrl = URL.createObjectURL(blob)
 
-		return logoUrl
-	} catch (e) {
-		console.error('Ошибка формирования URL логотипа:', e)
-		return ''
+		// Сохраняем в кэш
+		imageCache.value.set(logoUrl, blobUrl)
+
+		return blobUrl
+	} catch (error) {
+		console.warn(`Ошибка загрузки логотипа ${logoUrl}:`, error)
+		return null
 	}
 }
+
+// Получение URL логотипа (теперь возвращает blob URL или пустую строку)
+const getProxyLogoUrl = async (logoUrl: string, channelId: string) => {
+	if (!logoUrl || failedLogos.value.has(channelId)) return ''
+
+	const blobUrl = await loadImageAsBlob(logoUrl)
+	if (!blobUrl) {
+		failedLogos.value.add(channelId)
+		return ''
+	}
+
+	return blobUrl
+}
+
+// Реактивные URL изображений каналов
+const channelImages = ref({} as Record<string, string>)
+
+// Загрузка изображений для отфильтрованных каналов
+watch(
+	filteredChannels,
+	async (newChannels: Channel[]) => {
+		const imagePromises = newChannels.map(async (channel: Channel) => {
+			if (!channelImages.value[channel._id] && channel.logoUrl) {
+				const imageUrl = await getProxyLogoUrl(channel.logoUrl, channel._id)
+				if (imageUrl) {
+					channelImages.value[channel._id] = imageUrl
+					console.log('Загружен логотип для канала:', channel.name, imageUrl)
+				}
+			}
+		})
+
+		await Promise.all(imagePromises)
+	},
+	{ immediate: true }
+)
+
+// Получение URL изображения канала
+const getChannelImageUrl = (channel: Channel) => {
+	return channelImages.value[channel._id] || ''
+}
+
+// TODO: Добавить очистку blob URLs при размонтировании компонента
 
 // Получение URL стрима через прокси
 const getProxyStreamUrl = (streamUrl: string) => {

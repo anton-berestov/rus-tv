@@ -37,8 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
 import Hls from 'hls.js'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 // Добавляем экспорт по умолчанию
 defineOptions({

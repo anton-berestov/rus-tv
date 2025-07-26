@@ -58,8 +58,8 @@
 					>
 						<div class="channel-logo">
 							<img
-								v-if="channel.logo"
-								:src="getProxyImageUrl(channel.logo)"
+								v-if="channel.logo && getChannelImageUrl(channel)"
+								:src="getChannelImageUrl(channel)"
 								:alt="getChannelName(channel.title)"
 								@error="handleImageError"
 								ref="channelLogo"
@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
 	groupedChannels: {
@@ -163,23 +163,95 @@ const getChannelName = title => {
 	return match ? match[1] : 'Неизвестный канал'
 }
 
-const getProxyImageUrl = url => {
-	if (!url) return ''
+const selectedChannel = ref(null)
 
-	// Проверяем, является ли URL абсолютным
-	if (url.startsWith('http://') || url.startsWith('https://')) {
-		// Использовать прокси для внешних ресурсов во избежание CORS-ошибок
+// Кэш для blob URLs изображений
+const imageCache = ref(new Map())
+
+// Загрузка изображения через fetch API для обхода CORS
+const loadImageAsBlob = async logoUrl => {
+	if (!logoUrl) return null
+
+	// Проверяем кэш
+	if (imageCache.value.has(logoUrl)) {
+		return imageCache.value.get(logoUrl)
+	}
+
+	try {
+		// Формируем URL для прокси
 		const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
-		const encodedUrl = encodeURIComponent(url)
-		return `${baseUrl}/api/playlist/logo?url=${encodedUrl}`
+		const proxyUrl = logoUrl.startsWith('http')
+			? `${baseUrl}/api/playlist/logo?url=${encodeURIComponent(logoUrl)}`
+			: logoUrl
+
+		// Загружаем изображение через fetch
+		const response = await fetch(proxyUrl)
+
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}`)
+		}
+
+		const blob = await response.blob()
+		const blobUrl = URL.createObjectURL(blob)
+
+		// Сохраняем в кэш
+		imageCache.value.set(logoUrl, blobUrl)
+
+		return blobUrl
+	} catch (error) {
+		console.warn(`Ошибка загрузки логотипа ${logoUrl}:`, error)
+		return null
 	}
-	// Если URL относительный, то дополняем его
-	else if (url.startsWith('/')) {
-		return url
-	}
-	// Если URL имеет другой формат (data:image и т.д.), возвращаем как есть
-	return url
 }
+
+// Реактивные URL изображений для каналов
+const channelImages = ref(new Map())
+
+// Загрузка изображений для каналов
+const loadChannelImages = async () => {
+	if (!props.groupedChannels) return
+
+	const allChannels = Object.values(props.groupedChannels).flat()
+	const imagePromises = allChannels.map(async channel => {
+		if (!channelImages.value.has(channel.title) && channel.logo) {
+			const imageUrl = await loadImageAsBlob(channel.logo)
+			if (imageUrl) {
+				channelImages.value.set(channel.title, imageUrl)
+			}
+		}
+	})
+
+	await Promise.all(imagePromises)
+}
+
+// Получение URL изображения канала
+const getChannelImageUrl = channel => {
+	return channelImages.value.get(channel.title) || ''
+}
+
+const getProxyImageUrl = url => {
+	// Устаревшая функция - оставляем пустой для обратной совместимости
+	return ''
+}
+
+// Следим за изменениями каналов и загружаем изображения
+watch(
+	() => props.groupedChannels,
+	async () => {
+		await loadChannelImages()
+	},
+	{ immediate: true }
+)
+
+// Очищаем blob URLs при размонтировании компонента
+onUnmounted(() => {
+	imageCache.value.forEach(blobUrl => {
+		URL.revokeObjectURL(blobUrl)
+	})
+	channelImages.value.forEach(blobUrl => {
+		URL.revokeObjectURL(blobUrl)
+	})
+})
 
 const getChannelInitials = name => {
 	if (!name) return '??'
