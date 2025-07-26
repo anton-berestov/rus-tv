@@ -22,7 +22,10 @@
 				<div class="footer-offer">
 					Берестов Антон Леонидович<br />
 					ИНН: 182101629473<br />
-					<a href="/offer" class="footer-link">Публичная оферта</a>
+					<a href="/offer" class="footer-link">Публичная оферта</a><br />
+					<a href="mailto:info@rus-tv.live" class="footer-link"
+						>info@rus-tv.live</a
+					>
 				</div>
 			</div>
 		</footer>
@@ -228,7 +231,6 @@ body {
 	text-align: center;
 	font-size: 1rem;
 	border-top: 1px solid #dbeafe;
-	margin-top: 2rem;
 	box-shadow: 0 -2px 8px rgba(76, 110, 245, 0.05);
 }
 .footer-content {
