@@ -21,10 +21,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
 import ChannelList from '@/components/ChannelList.vue'
 import VideoPlayer from '@/components/VideoPlayer.vue'
+import axios from 'axios'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
@@ -94,7 +94,10 @@ const fetchChannels = async () => {
 
 const playChannel = channel => {
 	// Добавляем прокси для стрима
-	const proxyUrl = `/api/playlist/stream?url=${encodeURIComponent(channel.url)}`
+	const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
+	const proxyUrl = `${baseUrl}/api/playlist/stream?url=${encodeURIComponent(
+		channel.url
+	)}`
 	currentChannel.value = {
 		...channel,
 		url: proxyUrl,

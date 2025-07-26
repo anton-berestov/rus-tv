@@ -7,7 +7,7 @@ import { pendingNavigations, router } from './router'
 import { useAuthStore } from './stores/auth'
 
 // Настройка базового URL для axios
-axios.defaults.baseURL = 'http://localhost:3001'
+axios.defaults.baseURL = 'https://api.rus-tv.live'
 
 // Создаем interceptor для axios
 axios.interceptors.response.use(

@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
 	groupedChannels: {
@@ -169,8 +169,9 @@ const getProxyImageUrl = url => {
 	// Проверяем, является ли URL абсолютным
 	if (url.startsWith('http://') || url.startsWith('https://')) {
 		// Использовать прокси для внешних ресурсов во избежание CORS-ошибок
+		const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
 		const encodedUrl = encodeURIComponent(url)
-		return `/api/playlist/logo?url=${encodedUrl}`
+		return `${baseUrl}/api/playlist/logo?url=${encodedUrl}`
 	}
 	// Если URL относительный, то дополняем его
 	else if (url.startsWith('/')) {

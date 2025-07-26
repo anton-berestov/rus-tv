@@ -75,8 +75,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import VideoPlayer from './VideoPlayer.vue'
 
@@ -146,13 +146,17 @@ const getProxyLogoUrl = (logoUrl: string) => {
 	try {
 		// Если URL уже абсолютный и начинается с http, используем его через прокси
 		if (logoUrl.startsWith('http')) {
-			return `/api/playlist/logo?url=${encodeURIComponent(logoUrl)}`
+			const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
+			return `${baseUrl}/api/playlist/logo?url=${encodeURIComponent(logoUrl)}`
 		}
 
 		// Если URL относительный, добавляем базовый URL
 		if (logoUrl.startsWith('/')) {
-			const baseUrl = window.location.origin
-			return `/api/playlist/logo?url=${encodeURIComponent(baseUrl + logoUrl)}`
+			const originUrl = window.location.origin
+			const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
+			return `${baseUrl}/api/playlist/logo?url=${encodeURIComponent(
+				originUrl + logoUrl
+			)}`
 		}
 
 		return logoUrl
@@ -166,7 +170,8 @@ const getProxyLogoUrl = (logoUrl: string) => {
 const getProxyStreamUrl = (streamUrl: string) => {
 	if (!streamUrl) return ''
 	try {
-		return `/api/playlist/stream?url=${encodeURIComponent(streamUrl)}`
+		const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
+		return `${baseUrl}/api/playlist/stream?url=${encodeURIComponent(streamUrl)}`
 	} catch (e) {
 		return streamUrl
 	}

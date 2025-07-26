@@ -248,7 +248,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const channelUrls = {
 	pervyi: import.meta.env.VITE_PERVYI_URL,
@@ -263,7 +263,8 @@ const channelSwitchInterval = ref(null)
 const hlsPlayers = ref([])
 
 const getProxyUrl = url => {
-	return `/api/playlist/stream?url=${encodeURIComponent(url)}`
+	const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
+	return `${baseUrl}/api/playlist/stream?url=${encodeURIComponent(url)}`
 }
 
 const switchChannel = () => {
