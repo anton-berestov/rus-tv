@@ -81,6 +81,13 @@ const createVideoElement = () => {
 const initPlayer = () => {
 	if (!playerContainer.value) return
 
+	// Полифилл для performance API если он недоступен
+	if (typeof performance === 'undefined') {
+		;(window as any).performance = {
+			now: () => Date.now(),
+		}
+	}
+
 	error.value = ''
 
 	if (video.value && playerContainer.value.contains(video.value)) {
@@ -101,8 +108,21 @@ const initPlayer = () => {
 			maxBufferLength: 30,
 			maxMaxBufferLength: 600,
 			enableWorker: true,
-			lowLatencyMode: true,
-			backBufferLength: 60,
+			liveBackBufferLength: 60,
+			xhrSetup: function (xhr: XMLHttpRequest, url: string) {
+				// Проверяем, нужно ли проксировать URL
+				if (!url.includes('/api/playlist/stream')) {
+					const baseUrl = import.meta.env.DEV ? '' : 'https://api.rus-tv.live'
+					const proxyUrl = `${baseUrl}/api/playlist/stream?url=${encodeURIComponent(
+						url
+					)}`
+					console.log('XHR проксирование:', url, '→', proxyUrl)
+					xhr.open('GET', proxyUrl, true)
+				} else {
+					console.log('XHR без проксирования:', url)
+					xhr.open('GET', url, true)
+				}
+			},
 		})
 
 		hls.value.loadSource(props.streamUrl)
