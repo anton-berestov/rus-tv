@@ -12,39 +12,16 @@ interface User {
 		expireDate: Date
 		planId?: string
 		lastPaymentId?: string
+		autoRenewal?: boolean
 	}
 	phoneNumber?: string
-}
-
-interface AuthState {
-	user: User | null
-	token: string | null
-	isAuthenticated: boolean
-	isLoading: boolean
-	isInitialized: boolean
-	error: string | null
-	subscriptionPlans: any[]
-	paymentMethods: any[]
-}
-
-interface Payment {
-	id: string
-	status: string
-	amount: number
-	currency: string
-	description: string
-	createdAt: Date
-	paidAt: Date | null
-	plan: {
-		_id: string
-		name: string
-		monthDuration: number
-	}
+	isAdmin?: boolean
+	activeDevices?: any[]
 }
 
 export const useAuthStore = defineStore('auth', {
 	state: () => ({
-		user: null as any,
+		user: null as User | null,
 		token: null as string | null,
 		isAuthenticated: false,
 		isLoading: false,
@@ -234,8 +211,7 @@ export const useAuthStore = defineStore('auth', {
 				}
 
 				// Добавляем случайный параметр для обхода кэша
-				const timestamp = new Date().getTime()
-				const response = await axios.get(`/api/users/profile?_=${timestamp}`)
+				const response = await axios.get(`/api/users/profile?_=${Date.now()}`)
 
 				if (response.data && response.data.user) {
 					// Сохраняем предыдущие данные для сравнения
@@ -254,9 +230,9 @@ export const useAuthStore = defineStore('auth', {
 					}
 
 					console.log('Новые данные подписки:', {
-						active: this.user.subscription?.active,
-						deviceLimit: this.user.subscription?.deviceLimit,
-						expireDate: this.user.subscription?.expireDate,
+						active: this.user?.subscription?.active,
+						deviceLimit: this.user?.subscription?.deviceLimit,
+						expireDate: this.user?.subscription?.expireDate,
 					})
 
 					return this.user
@@ -368,7 +344,6 @@ export const useAuthStore = defineStore('auth', {
 					for (let i = 0; i < 3; i++) {
 						try {
 							// Добавляем случайный параметр для обхода кэша
-							const timestamp = new Date().getTime() + Math.random()
 							await this.fetchUserProfile()
 							console.log(
 								`Успешное обновление профиля после автоплатежа (попытка ${

@@ -25,7 +25,7 @@ const router = createRouter({
 		{
 			path: '/home',
 			name: 'home',
-			redirect: to => {
+			redirect: _ => {
 				const authStore = useAuthStore()
 				return authStore.hasActiveSubscription
 					? { name: 'channels' }
